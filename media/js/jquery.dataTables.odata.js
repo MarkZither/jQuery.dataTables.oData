@@ -37,7 +37,7 @@ function fnServerOData(sUrl, aoData, fnCallback, oSettings) {
     }
 
     $.each(oSettings.aoColumns, function (i, value) {
-        var sFieldName = (value.sName !== null && value.sName !== "") ? value.sName : ((typeof value.mData === 'string') ? value.mData : null);
+        var sFieldName = (value.sName !== null && value.sName !== "") ? value.sName : ((typeof value.oData === 'string') ? value.oData : null);
         if (sFieldName === null || !isNaN(Number(sFieldName))) {
             sFieldName = value.sTitle;
         }
@@ -70,26 +70,51 @@ function fnServerOData(sUrl, aoData, fnCallback, oSettings) {
         $.each(oSettings.aoColumns,
             function (i, value) {
 
-                var sFieldName = value.sName || value.mData;
+                var sFieldName = value.sName || value.oData;
                 var columnFilter = oParams["sSearch_" + i]; //fortunately columnFilter's _number matches the index of aoColumns
+
+                if (columnFilter === 'ne null')
+                {
+                    asColumnFilters.push("(" + sFieldName + " " + columnFilter + ")");
+                }
 
                 if ((oParams.sSearch !== null && oParams.sSearch !== "" || columnFilter !== null && columnFilter !== "") && value.bSearchable) {
                     switch (value.sType) {
                     case 'string':
                     case 'html':
 
-                        if (oParams.sSearch !== null && oParams.sSearch !== "")
+                        if (oParams.sSearch !== null && oParams.sSearch !== "" && value.columnSearchOnly != "true")
                         {
-                            // asFilters.push("substringof('" + oParams.sSearch + "', " + sFieldName + ")");
-                            // substringof does not work in v4???
-                            asFilters.push("indexof(tolower(" + sFieldName + "), '" + oParams.sSearch.toLowerCase() + "') gt -1");
+                            if (value.oDataCollectionFilter == null) {
+                                var searchTerm = oParams.sSearch.toLowerCase().replace("'", "''");
+                                asFilters.push("indexof(tolower(" + sFieldName + "), '" + searchTerm + "') gt -1");
+                            }
+                            else {
+                                asFilters.push(value.oDataCollectionFilter + "/any(c: c/" + value.oDataCollectionFilterProperty + " eq '" + oParams.sSearch + "')");
+                            }
                         }
 
                         if (columnFilter !== null && columnFilter !== "") {
-                            asColumnFilters.push("indexof(tolower(" + sFieldName + "), '" + columnFilter.toLowerCase() + "') gt -1");
+                            if (value.oDataCollectionFilter == null) {
+                                var searchTerm = columnFilter.toLowerCase().replace("'", "''");
+                                asColumnFilters.push("indexof(tolower(" + sFieldName + "), '" + searchTerm + "') gt -1");
+                            }
+                            else {
+                                asColumnFilters.push(value.oDataCollectionFilter + "/any(c: c/" + value.oDataCollectionFilterProperty + " eq '" + columnFilter + "')");
+                            }
                         }
                         break;
-
+                    case 'enum':
+                            if (columnFilter !== null && columnFilter !== "") {
+                                if (value.oDataCollectionFilter == null) {
+                                    var searchTerm = columnFilter.replace("'", "''");
+                                    asFilters.push(sFieldName + " eq '" + searchTerm + "'");
+                                }
+                                else {
+                                    asColumnFilters.push(value.oDataCollectionFilter + "/any(c: c/" + value.oDataCollectionFilterProperty + " eq '" + columnFilter + "')");
+                                }
+                            }
+                        break;
                     case 'date':
                     case 'numeric':
                         var fnFormatValue = 
@@ -109,6 +134,14 @@ function fnServerOData(sUrl, aoData, fnCallback, oSettings) {
                                                 case 2: return "DateTime'" + (new Date(val)).toISOString() + "'"; 
                                         }
                                 }
+
+                        if (oParams.sSearch !== null && oParams.sSearch !== "" && value.columnSearchOnly != "true") {
+
+                            var c = TryParseInt(oParams.sSearch.toLowerCase(), null);
+                            if (c !== null) {
+                                asFilters.push(sFieldName + ' eq ' + oParams.sSearch.toLowerCase());
+                            }
+                        }
 
                         // Currently, we cannot use global search for date and numeric fields (exception on the OData service side)
                         // However, individual column filters are supported in form lower~upper
@@ -142,7 +175,8 @@ function fnServerOData(sUrl, aoData, fnCallback, oSettings) {
 
         var asOrderBy = [];
         for (var i = 0; i < oParams.iSortingCols; i++) {
-            asOrderBy.push(oParams["mDataProp_" + oParams["iSortCol_" + i]] + " " + (oParams["sSortDir_" + i] || ""));
+            var columnName = String(oParams["mDataProp_" + oParams["iSortCol_" + i]]).replace(".", "/");
+            asOrderBy.push(columnName + " " + (oParams["sSortDir_" + i] || ""));
         }
 
         if (asOrderBy.length > 0) {
@@ -180,3 +214,48 @@ function fnServerOData(sUrl, aoData, fnCallback, oSettings) {
     }));
 
 } // end fnServerData
+
+jQuery.fn.dataTableExt.oApi.fnSetFilteringDelay = function (oSettings, iDelay) {
+    var _that = this;
+
+    if (iDelay === undefined) {
+        iDelay = 250;
+    }
+
+    this.each(function (i) {
+        $.fn.dataTableExt.iApiIndex = i;
+        var
+            $this = this,
+            oTimerId = null,
+            sPreviousSearch = null,
+            anControl = $('input', _that.fnSettings().aanFeatures.f);
+
+        anControl.unbind('keyup search input').bind('keyup search input', function () {
+            var $$this = $this;
+
+            if (sPreviousSearch === null || sPreviousSearch != anControl.val()) {
+                window.clearTimeout(oTimerId);
+                sPreviousSearch = anControl.val();
+                oTimerId = window.setTimeout(function () {
+                    $.fn.dataTableExt.iApiIndex = i;
+                    _that.fnFilter(anControl.val());
+                }, iDelay);
+            }
+        });
+
+        return this;
+    });
+    return this;
+};
+
+function TryParseInt(str, defaultValue) {
+    var retValue = defaultValue;
+    if (str !== null) {
+        if (str.length > 0) {
+            if (!isNaN(str)) {
+                retValue = parseInt(str);
+            }
+        }
+    }
+    return retValue;
+}
