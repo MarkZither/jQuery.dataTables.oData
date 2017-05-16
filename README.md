@@ -7,18 +7,19 @@ handles all of these versions (and you simply need to specify a version through 
 ## Folk Improvements
 
 This is a folk of https://github.com/vpllan/jQuery.dataTables.oData and contains the following improvements:
-	* Supports oData $expand:
-	   * "sAjaxSource": "/odata/Cases?$expand=Client"
-	* Ability to select properties from sub objects by specifying aoColumns such as:
-	   * { "mData": "Client.Address.Postcode", "oData": "Client/Address/Postcode" }
-	* Ability to filter/search enum properities by specifying sType as enum:
-	   * { "mData": "Client.Title", "oData": "Client/Title", "sType": "enum" }
-    * Ability to search and filter collections:
-	   * { "mData": "Clients", "oData": "Clients/Title", "oDataCollectionFilter": "Clients", "oDataCollectionFilterProperty": "Title" }
-	* Ability to specify if a column is search only (rather than filter):
-	   * { "mData": "Clients", "oData": "Clients/Title", "oDataCollectionFilter": "Clients", "oDataCollectionFilterProperty": "Title", "columnSearchOnly" : "true" }
-	* Included a filter/search delay so that you don't send requests too frequently
-	* Better int support
+
+* Supports oData $expand:
+ * "sAjaxSource": "/odata/Cases?$expand=Client"
+* Ability to select properties from sub objects by specifying aoColumns such as:
+ * { "mData": "Client.Address.Postcode", "oData": "Client/Address/Postcode" }
+* Ability to filter/search enum properities by specifying sType as enum:
+ * { "mData": "Client.Title", "oData": "Client/Title", "sType": "enum" }
+* Ability to search and filter collections:
+ * { "mData": "Clients", "oData": "Clients/Title", "oDataCollectionFilter": "Clients", "oDataCollectionFilterProperty": "Title" }
+* Ability to specify if a column is search only (rather than filter): 
+ * { "mData": "Clients", "oData": "Clients/Title", "oDataCollectionFilter": "Clients", "oDataCollectionFilterProperty": "Title", "columnSearchOnly" : "true" }
+* Included a filter/search delay so that you don't send requests too frequently
+* Better int support
 
 NOTE: Theses have only been proving for my use cases so they may or may not work for you use cases... but I am sure the improvement will at least help!
 
