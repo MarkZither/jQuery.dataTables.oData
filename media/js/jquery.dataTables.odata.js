@@ -147,12 +147,16 @@ function fnServerOData(sUrl, aoData, fnCallback, oSettings) {
                         // However, individual column filters are supported in form lower~upper
                         if (columnFilter !== null && columnFilter !== "" && columnFilter !== "~") {
                             asRanges = columnFilter.split("~");
-                            if (asRanges[0] !== "") {
-                                asColumnFilters.push("(" + sFieldName + " gt " + fnFormatValue(asRanges[0]) + ")");
-                            }
+                            if (value.oDataCollectionFilter == null) {
+                                if (asRanges[0] !== "") {
+                                    asColumnFilters.push("(" + sFieldName + " gt " + fnFormatValue(asRanges[0]) + ")");
+                                }
 
-                            if (asRanges[1] !== "") {
-                                asColumnFilters.push("(" + sFieldName + " lt " + fnFormatValue(asRanges[1]) + ")");
+                                if (asRanges[1] !== "") {
+                                    asColumnFilters.push("(" + sFieldName + " lt " + fnFormatValue(asRanges[1]) + ")");
+                                }
+                            } else {
+                                asColumnFilters.push(value.oDataCollectionFilter + "/any(c: c/" + value.oDataCollectionFilterProperty + " gt " + fnFormatValue(asRanges[0]) + " and c/" + value.oDataCollectionFilterProperty + " lt " + fnFormatValue(asRanges[1]) + ")");
                             }
                         }
                         break;
