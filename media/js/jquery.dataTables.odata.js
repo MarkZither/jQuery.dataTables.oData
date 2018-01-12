@@ -36,6 +36,8 @@ function fnServerOData(sUrl, aoData, fnCallback, oSettings) {
         data.$callback = "odatatable_" + (oSettings.oFeatures.bServerSide ? oParams.sEcho : ("load_" + Math.floor((Math.random() * 1000) + 1)));
     }
 
+    var urlQuery = "?";
+
     $.each(oSettings.aoColumns, function (i, value) {
         var sFieldName = (value.sName !== null && value.sName !== "") ? value.sName : ((typeof value.oData === 'string') ? value.oData : null);
         if (sFieldName === null || !isNaN(Number(sFieldName))) {
@@ -50,19 +52,23 @@ function fnServerOData(sUrl, aoData, fnCallback, oSettings) {
             data.$select += "," + sFieldName;
         }
     });
-
+    urlQuery += "$select=" + data.$select;
     if (oSettings.oFeatures.bServerSide) {
 
         data.$skip = oSettings._iDisplayStart;
+        urlQuery += "&$skip=" + data.$skip;
         if (oSettings._iDisplayLength > -1) {
             data.$top = oSettings._iDisplayLength;
+            urlQuery += "&$top=" + data.$top;
         }
 
         // OData versions prior to v4 used $inlinecount=allpages; but v4 is uses $count=true
         if (oSettings.oInit.iODataVersion !== null && oSettings.oInit.iODataVersion < 4) {
             data.$inlinecount = "allpages";
+            urlQuery += "&$inlinecount=" + data.$inlinecount;
         } else {
             data.$count = true;
+            urlQuery += "&$count=" + data.$count;
         }
 
         var asFilters = [];
@@ -188,7 +194,7 @@ function fnServerOData(sUrl, aoData, fnCallback, oSettings) {
         }
     }
     $.ajax(jQuery.extend({}, oSettings.oInit.ajax, {
-        "url": sUrl,
+        "url": sUrl + urlQuery,
         "data": data,
         "jsonp": bJSONP,
         "dataType": bJSONP ? "jsonp" : "json",
